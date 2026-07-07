@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 const SALT_ROUNDS = 10;
@@ -44,6 +45,14 @@ router.post('/login', async (req, res) => {
   const token = jwt.sign({ sub: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
   res.json({ token, user: { id: user._id, username: user.username, email: user.email } });
+});
+
+router.get('/me', requireAuth, async (req, res) => {
+  const user = await User.findById(req.userId).select('username email');
+  if (!user) {
+    return res.status(404).json({ error: 'user not found' });
+  }
+  res.json({ id: user._id, username: user.username, email: user.email });
 });
 
 export default router;
