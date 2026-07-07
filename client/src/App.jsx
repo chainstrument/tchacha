@@ -1,17 +1,28 @@
 import { useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
+import { logout } from './api/auth.js'
 import './App.css'
 
 function Home() {
+  const navigate = useNavigate()
   const [count, setCount] = useState(0)
+
+  function handleLogout() {
+    logout()
+    navigate('/login')
+  }
 
   return (
     <>
+      <header id="topbar">
+        <button type="button" onClick={handleLogout}>Déconnexion</button>
+      </header>
       <section id="center">
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
@@ -125,7 +136,7 @@ function Home() {
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
     </Routes>
