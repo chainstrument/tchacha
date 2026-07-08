@@ -128,13 +128,27 @@
 }
 
 .conversation-item a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-h);
   text-decoration: none;
   transition: background 0.2s, border-color 0.2s;
+}
+
+.presence-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.presence-dot.online {
+  background: #22c55e;
 }
 
 .conversation-item a:hover {

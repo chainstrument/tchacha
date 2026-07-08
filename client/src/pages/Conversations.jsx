@@ -2,20 +2,52 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { listConversations, searchUsers, startConversation } from '../api/conversations.js';
 import { getCurrentUser, logout } from '../api/auth.js';
+import { useSocket } from '../hooks/useSocket.js';
 
 export default function Conversations() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
+  const { socket, connected } = useSocket();
   const [conversations, setConversations] = useState([]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [error, setError] = useState(null);
+  const [onlineUserIds, setOnlineUserIds] = useState(new Set());
 
   useEffect(() => {
     listConversations()
       .then(setConversations)
       .catch((err) => setError(err.message));
   }, []);
+
+  useEffect(() => {
+    if (!socket || !connected) {
+      return undefined;
+    }
+
+    function handleSnapshot(ids) {
+      setOnlineUserIds(new Set(ids));
+    }
+    function handleOnline({ userId }) {
+      setOnlineUserIds((prev) => new Set(prev).add(userId));
+    }
+    function handleOffline({ userId }) {
+      setOnlineUserIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
+
+    socket.on('presence:snapshot', handleSnapshot);
+    socket.on('presence:online', handleOnline);
+    socket.on('presence:offline', handleOffline);
+    return () => {
+      socket.off('presence:snapshot', handleSnapshot);
+      socket.off('presence:online', handleOnline);
+      socket.off('presence:offline', handleOffline);
+    };
+  }, [socket, connected]);
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -84,11 +116,18 @@ export default function Conversations() {
         <p className="empty-state">Aucune conversation pour l'instant.</p>
       ) : (
         <ul className="conversation-list">
-          {conversations.map((conversation) => (
-            <li key={conversation._id} className="conversation-item">
-              <Link to={`/conversations/${conversation._id}`}>{otherParticipant(conversation).username}</Link>
-            </li>
-          ))}
+          {conversations.map((conversation) => {
+            const other = otherParticipant(conversation);
+            const isOnline = onlineUserIds.has(other._id);
+            return (
+              <li key={conversation._id} className="conversation-item">
+                <Link to={`/conversations/${conversation._id}`}>
+                  <span className={`presence-dot${isOnline ? ' online' : ''}`} title={isOnline ? 'En ligne' : 'Hors ligne'} />
+                  {other.username}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
