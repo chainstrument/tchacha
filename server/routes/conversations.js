@@ -6,7 +6,30 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 router.use(requireAuth);
+
+router.get('/search-users', async (req, res) => {
+  const q = req.query.q?.trim();
+
+  if (!q) {
+    return res.json([]);
+  }
+
+  const pattern = escapeRegex(q);
+  const users = await User.find({
+    _id: { $ne: req.userId },
+    $or: [
+      { username: { $regex: pattern, $options: 'i' } },
+      { email: { $regex: pattern, $options: 'i' } },
+    ],
+  }).select('username email').limit(10);
+
+  res.json(users);
+});
 
 router.get('/', async (req, res) => {
   const conversations = await Conversation.find({ participants: req.userId })
