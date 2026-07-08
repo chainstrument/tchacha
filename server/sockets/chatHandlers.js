@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
+import { addConnection, removeConnection, getOnlineUserIds } from './presence.js';
 
 export function authenticateSocket(socket, next) {
   const token = socket.handshake.auth?.token;
@@ -21,6 +22,19 @@ export function authenticateSocket(socket, next) {
 
 export function registerChatHandlers(io, socket) {
   socket.join(`user:${socket.userId}`);
+
+  const becameOnline = addConnection(socket.userId, socket.id);
+  socket.emit('presence:snapshot', getOnlineUserIds());
+  if (becameOnline) {
+    io.emit('presence:online', { userId: socket.userId });
+  }
+
+  socket.on('disconnect', () => {
+    const becameOffline = removeConnection(socket.userId, socket.id);
+    if (becameOffline) {
+      io.emit('presence:offline', { userId: socket.userId });
+    }
+  });
 
   socket.on('message:send', async ({ conversationId, content } = {}, ack) => {
     try {
