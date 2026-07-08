@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { listConversations, searchUsers, startConversation } from '../api/conversations.js';
 import { getCurrentUser, logout } from '../api/auth.js';
 
@@ -33,12 +33,9 @@ export default function Conversations() {
   async function handleStart(userId) {
     try {
       const conversation = await startConversation(userId);
-      setConversations((prev) => {
-        const exists = prev.some((c) => c._id === conversation._id);
-        return exists ? prev : [conversation, ...prev];
-      });
       setResults([]);
       setQuery('');
+      navigate(`/conversations/${conversation._id}`);
     } catch (err) {
       setError(err.message);
     }
@@ -88,7 +85,9 @@ export default function Conversations() {
       ) : (
         <ul>
           {conversations.map((conversation) => (
-            <li key={conversation._id}>{otherParticipant(conversation).username}</li>
+            <li key={conversation._id}>
+              <Link to={`/conversations/${conversation._id}`}>{otherParticipant(conversation).username}</Link>
+            </li>
           ))}
         </ul>
       )}
