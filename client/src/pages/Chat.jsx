@@ -65,7 +65,7 @@ export default function Chat() {
   }
 
   return (
-    <div>
+    <div className="chat-page">
       <header className="topbar">
         <div className="topbar-left">
           <Link to="/">← Conversations</Link>
@@ -73,25 +73,29 @@ export default function Chat() {
         </div>
       </header>
 
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert" className="page-alert">{error}</p>}
 
-      <ul>
-        {messages.map((message) => (
-          <li key={message._id}>
-            {message.senderId === currentUser?.id ? 'Moi' : otherUser?.username}: {message.content}
-          </li>
-        ))}
-      </ul>
-      <div ref={bottomRef} />
+      <div className="message-list">
+        {messages.map((message) => {
+          const isOwn = message.senderId === currentUser?.id;
+          return (
+            <div key={message._id} className={`message${isOwn ? ' own' : ''}`}>
+              <span className="sender">{isOwn ? 'Moi' : otherUser?.username}</span>
+              {message.content}
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
 
-      <form onSubmit={handleSend}>
+      <form className="message-form" onSubmit={handleSend}>
         <input
           type="text"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Écrire un message..."
         />
-        <button type="submit" disabled={!connected}>Envoyer</button>
+        <button type="submit" className="btn-primary" disabled={!connected}>Envoyer</button>
       </form>
     </div>
   );
