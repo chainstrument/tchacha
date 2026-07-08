@@ -52,9 +52,9 @@ export default function Conversations() {
 
   return (
     <div>
-      <header id="topbar">
+      <header className="topbar">
         <h1>Conversations</h1>
-        <button type="button" onClick={handleLogout}>Déconnexion</button>
+        <button type="button" className="btn-ghost" onClick={handleLogout}>Déconnexion</button>
       </header>
 
       <form onSubmit={handleSearch}>

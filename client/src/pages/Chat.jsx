@@ -66,9 +66,11 @@ export default function Chat() {
 
   return (
     <div>
-      <header id="topbar">
-        <Link to="/">← Conversations</Link>
-        <h1>{otherUser?.username ?? 'Conversation'}</h1>
+      <header className="topbar">
+        <div className="topbar-left">
+          <Link to="/">← Conversations</Link>
+          <h1>{otherUser?.username ?? 'Conversation'}</h1>
+        </div>
       </header>
 
       {error && <p role="alert">{error}</p>}
