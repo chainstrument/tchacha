@@ -39,15 +39,26 @@ export default function Conversations() {
       });
     }
 
+    function handleNewMessage(message) {
+      if (message.senderId === currentUser?.id) {
+        return;
+      }
+      setConversations((prev) => prev.map((c) => (
+        c._id === message.conversationId ? { ...c, unreadCount: (c.unreadCount ?? 0) + 1 } : c
+      )));
+    }
+
     socket.on('presence:snapshot', handleSnapshot);
     socket.on('presence:online', handleOnline);
     socket.on('presence:offline', handleOffline);
+    socket.on('message:new', handleNewMessage);
     return () => {
       socket.off('presence:snapshot', handleSnapshot);
       socket.off('presence:online', handleOnline);
       socket.off('presence:offline', handleOffline);
+      socket.off('message:new', handleNewMessage);
     };
-  }, [socket, connected]);
+  }, [socket, connected, currentUser?.id]);
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -123,7 +134,10 @@ export default function Conversations() {
               <li key={conversation._id} className="conversation-item">
                 <Link to={`/conversations/${conversation._id}`}>
                   <span className={`presence-dot${isOnline ? ' online' : ''}`} title={isOnline ? 'En ligne' : 'Hors ligne'} />
-                  {other.username}
+                  <span className="conversation-name">{other.username}</span>
+                  {conversation.unreadCount > 0 && (
+                    <span className="unread-badge">{conversation.unreadCount}</span>
+                  )}
                 </Link>
               </li>
             );

@@ -151,6 +151,27 @@
   background: #22c55e;
 }
 
+.conversation-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unread-badge {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 999px;
+  min-width: 18px;
+  text-align: center;
+}
+
 .conversation-item a:hover {
   background: var(--accent-bg);
   border-color: var(--accent-border);

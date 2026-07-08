@@ -43,11 +43,14 @@ export default function Chat() {
       return undefined;
     }
 
+    socket.emit('conversation:read', { conversationId });
+
     function handleNewMessage(message) {
       if (message.conversationId !== conversationId) {
         return;
       }
       setMessages((prev) => [...prev, message]);
+      socket.emit('conversation:read', { conversationId });
     }
 
     function handleTyping({ conversationId: cid, typing }) {
