@@ -35,9 +35,25 @@ router.get('/search-users', async (req, res) => {
 router.get('/', async (req, res) => {
   const conversations = await Conversation.find({ participants: req.userId })
     .populate('participants', 'username email')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
-  res.json(conversations);
+  const unreadCounts = await Message.aggregate([
+    {
+      $match: {
+        conversationId: { $in: conversations.map((c) => c._id) },
+        senderId: { $ne: new mongoose.Types.ObjectId(req.userId) },
+        readAt: null,
+      },
+    },
+    { $group: { _id: '$conversationId', count: { $sum: 1 } } },
+  ]);
+  const unreadByConversation = new Map(unreadCounts.map((u) => [u._id.toString(), u.count]));
+
+  res.json(conversations.map((c) => ({
+    ...c,
+    unreadCount: unreadByConversation.get(c._id.toString()) ?? 0,
+  })));
 });
 
 router.post('/', async (req, res) => {

@@ -83,6 +83,30 @@ export function registerChatHandlers(io, socket) {
 
   socket.on('typing:start', ({ conversationId } = {}) => relayTyping(io, socket, conversationId, true));
   socket.on('typing:stop', ({ conversationId } = {}) => relayTyping(io, socket, conversationId, false));
+
+  socket.on('conversation:read', async ({ conversationId } = {}) => {
+    if (!conversationId || !mongoose.Types.ObjectId.isValid(conversationId)) {
+      return;
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!isParticipant(conversation, socket.userId)) {
+      return;
+    }
+
+    const result = await Message.updateMany(
+      { conversationId, senderId: { $ne: socket.userId }, readAt: null },
+      { $set: { readAt: new Date() } },
+    );
+
+    if (result.modifiedCount > 0) {
+      conversation.participants
+        .filter((p) => p.toString() !== socket.userId)
+        .forEach((participantId) => {
+          io.to(`user:${participantId}`).emit('conversation:read', { conversationId, readerId: socket.userId });
+        });
+    }
+  });
 }
 
 async function relayTyping(io, socket, conversationId, typing) {
