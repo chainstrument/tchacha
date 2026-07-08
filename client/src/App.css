@@ -193,6 +193,13 @@
   margin-bottom: 2px;
 }
 
+.typing-indicator {
+  align-self: flex-start;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text);
+}
+
 .message-form {
   display: flex;
   gap: 8px;

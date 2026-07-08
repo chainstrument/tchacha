@@ -5,6 +5,9 @@ import { listConversations } from '../api/conversations.js';
 import { getCurrentUser } from '../api/auth.js';
 import { useSocket } from '../hooks/useSocket.js';
 
+const TYPING_IDLE_MS = 2000;
+const TYPING_STALE_MS = 5000;
+
 export default function Chat() {
   const { conversationId } = useParams();
   const currentUser = getCurrentUser();
@@ -13,7 +16,11 @@ export default function Chat() {
   const [otherUser, setOtherUser] = useState(null);
   const [content, setContent] = useState('');
   const [error, setError] = useState(null);
+  const [otherTyping, setOtherTyping] = useState(false);
   const bottomRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const otherTypingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
 
   useEffect(() => {
     getMessages(conversationId)
@@ -27,6 +34,8 @@ export default function Chat() {
         setOtherUser(other ?? null);
       })
       .catch(() => {});
+
+    setOtherTyping(false);
   }, [conversationId, currentUser?.id]);
 
   useEffect(() => {
@@ -41,19 +50,69 @@ export default function Chat() {
       setMessages((prev) => [...prev, message]);
     }
 
+    function handleTyping({ conversationId: cid, typing }) {
+      if (cid !== conversationId) {
+        return;
+      }
+      setOtherTyping(typing);
+      clearTimeout(otherTypingTimeoutRef.current);
+      if (typing) {
+        otherTypingTimeoutRef.current = setTimeout(() => setOtherTyping(false), TYPING_STALE_MS);
+      }
+    }
+
     socket.on('message:new', handleNewMessage);
-    return () => socket.off('message:new', handleNewMessage);
+    socket.on('typing', handleTyping);
+    return () => {
+      socket.off('message:new', handleNewMessage);
+      socket.off('typing', handleTyping);
+      clearTimeout(otherTypingTimeoutRef.current);
+    };
   }, [socket, connected, conversationId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current && socket) {
+        isTypingRef.current = false;
+        socket.emit('typing:stop', { conversationId });
+      }
+    };
+  }, [socket, conversationId]);
+
+  function handleContentChange(e) {
+    setContent(e.target.value);
+    if (!socket) {
+      return;
+    }
+
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      socket.emit('typing:start', { conversationId });
+    }
+
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      socket.emit('typing:stop', { conversationId });
+    }, TYPING_IDLE_MS);
+  }
+
   function handleSend(e) {
     e.preventDefault();
     const trimmed = content.trim();
     if (!trimmed || !socket) {
       return;
+    }
+
+    clearTimeout(typingTimeoutRef.current);
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      socket.emit('typing:stop', { conversationId });
     }
 
     socket.emit('message:send', { conversationId, content: trimmed }, (ack) => {
@@ -85,6 +144,7 @@ export default function Chat() {
             </div>
           );
         })}
+        {otherTyping && <p className="typing-indicator">{otherUser?.username ?? 'Il/elle'} est en train d'écrire...</p>}
         <div ref={bottomRef} />
       </div>
 
@@ -92,7 +152,7 @@ export default function Chat() {
         <input
           type="text"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={handleContentChange}
           placeholder="Écrire un message..."
         />
         <button type="submit" className="btn-primary" disabled={!connected}>Envoyer</button>

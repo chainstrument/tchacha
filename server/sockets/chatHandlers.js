@@ -20,6 +20,10 @@ export function authenticateSocket(socket, next) {
   }
 }
 
+function isParticipant(conversation, userId) {
+  return Boolean(conversation?.participants.some((p) => p.toString() === userId));
+}
+
 export function registerChatHandlers(io, socket) {
   socket.join(`user:${socket.userId}`);
 
@@ -48,8 +52,7 @@ export function registerChatHandlers(io, socket) {
       }
 
       const conversation = await Conversation.findById(conversationId);
-      const isParticipant = conversation?.participants.some((p) => p.toString() === socket.userId);
-      if (!isParticipant) {
+      if (!isParticipant(conversation, socket.userId)) {
         throw new Error('conversation not found');
       }
 
@@ -77,4 +80,24 @@ export function registerChatHandlers(io, socket) {
       ack?.({ error: err.message });
     }
   });
+
+  socket.on('typing:start', ({ conversationId } = {}) => relayTyping(io, socket, conversationId, true));
+  socket.on('typing:stop', ({ conversationId } = {}) => relayTyping(io, socket, conversationId, false));
+}
+
+async function relayTyping(io, socket, conversationId, typing) {
+  if (!conversationId || !mongoose.Types.ObjectId.isValid(conversationId)) {
+    return;
+  }
+
+  const conversation = await Conversation.findById(conversationId);
+  if (!isParticipant(conversation, socket.userId)) {
+    return;
+  }
+
+  conversation.participants
+    .filter((p) => p.toString() !== socket.userId)
+    .forEach((participantId) => {
+      io.to(`user:${participantId}`).emit('typing', { conversationId, userId: socket.userId, typing });
+    });
 }
