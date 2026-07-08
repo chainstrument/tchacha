@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import Conversation from '../models/Conversation.js';
+import Message from '../models/Message.js';
 import User from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -66,6 +67,32 @@ router.post('/', async (req, res) => {
 
   await conversation.populate('participants', 'username email');
   res.status(status).json(conversation);
+});
+
+router.get('/:conversationId/messages', async (req, res) => {
+  const { conversationId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+    return res.status(400).json({ error: 'invalid conversationId' });
+  }
+
+  const conversation = await Conversation.findById(conversationId);
+  const isParticipant = conversation?.participants.some((p) => p.toString() === req.userId);
+  if (!isParticipant) {
+    return res.status(404).json({ error: 'conversation not found' });
+  }
+
+  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+  const filter = { conversationId };
+  if (req.query.before) {
+    filter.createdAt = { $lt: new Date(req.query.before) };
+  }
+
+  const messages = await Message.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(limit);
+
+  res.json(messages.reverse());
 });
 
 export default router;
