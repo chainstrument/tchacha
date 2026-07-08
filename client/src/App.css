@@ -83,3 +83,68 @@
   text-align: center;
   color: var(--text);
 }
+
+/* Conversations list */
+
+.conversations-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.search-form {
+  display: flex;
+  gap: 8px;
+  padding: 16px 24px;
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 24px 16px;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.conversation-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 24px 24px;
+}
+
+.conversation-item a {
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-h);
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.conversation-item a:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.empty-state {
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--text);
+}
+
+.page-alert {
+  margin: 0 24px 16px;
+}
